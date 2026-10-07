@@ -114,7 +114,8 @@ Rules:
 - "2015 - Present" means start_year 2015, end_year null, current true.
 - Split "Master of Business Administration in Logistics" into degree "Master of Business
   Administration" and field "Logistics"; "BSc in Design" into degree "BSc" and field "Design".
-- A year next to a degree ("Graduated 2012", or just "2012") is its graduation_year.
+- A year next to a degree ("Graduated 2012", or just "2012") is its graduation_year; for a range
+  such as "2008 - 2012" the graduation_year is the later year.
 - List every job, degree and skill in the order they appear. Output JSON only."""
 
 JUDGE_PROMPT = """You decide whether a value from a CV names the same thing as one of the given
@@ -219,6 +220,8 @@ def split_title(title: Any) -> tuple[str | None, str]:
     while words and words[0] in _SENIORITY:
         level = _SENIORITY[words[0]]
         words = words[1:]
+        if words and words[0] == "level":           # "Mid-level Engineer", "Senior level Analyst"
+            words = words[1:]
     return level, " ".join(words)
 
 
@@ -371,7 +374,9 @@ def compare(cv: dict[str, Any], profile: dict[str, Any],
         if i is None:
             found.append(f"school '{ed['school']}' is not on LinkedIn")
             continue
-        x = edus[i]
+        same_school = [e for e in edus if _norm(e.get("school")) == _norm(edus[i].get("school"))]
+        x = next((e for e in same_school if norm_degree(e.get("degree")) == norm_degree(ed["degree"])),
+                 next((e for e in same_school if e.get("end_year") == ed["graduation_year"]), edus[i]))
         if ed["degree"] and x.get("degree") and norm_degree(ed["degree"]) != norm_degree(x["degree"]):
             found.append(f"degree at {ed['school']}: CV '{ed['degree']}', LinkedIn '{x['degree']}'")
         if ed["field"] and x.get("field") and \

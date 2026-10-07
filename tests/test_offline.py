@@ -109,6 +109,14 @@ cases = {
 for label, c in cases.items():
     found, pend = hw2.compare(c, base_p)
     check(label, found, found)
+two_degrees = profile(education=[{"school": "HKUST", "degree": "BSc", "field": "Finance", "end_year": 2016},
+                                 {"school": "HKUST", "degree": "MSc", "field": "Finance", "end_year": 2018}])
+both = cv(education=[{"degree": "MSc", "field": "Finance", "school": "HKUST", "graduation_year": 2018},
+                     {"degree": "BSc", "field": "Finance", "school": "HKUST", "graduation_year": 2016}])
+check("BSc and MSc from the same school -> no discrepancy", hw2.compare(both, two_degrees)[0] == [],
+      hw2.compare(both, two_degrees)[0])
+check("split_title('Mid-level Engineer')", hw2.split_title("Mid-level Engineer") == ("mid", "engineer"),
+      hw2.split_title("Mid-level Engineer"))
 fake_school = cv(education=[{"degree": "BSc", "field": "Finance", "school": "Harvard", "graduation_year": 2016}])
 found, pend = hw2.compare(fake_school, base_p, {"school:Harvard": None})
 check("fake school (judge says no) ", any("school" in d for d in found), found)
