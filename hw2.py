@@ -87,7 +87,7 @@ import unicodedata
 CONCURRENCY = 3                 # CVs in flight; the MCP server is shared by the class
 CV_TIMEOUT = 200                # seconds per CV
 RUN_BUDGET = 25 * 60            # stay well inside the 30-minute limit
-MAX_PROFILE_FETCHES = 10        # LinkedIn profiles opened per CV
+MAX_PROFILE_FETCHES = 25        # LinkedIn profiles opened per CV (namesakes share city and industry)
 SCORE_VALID = 0.9
 SCORE_DISCREPANCY = 0.1
 SCORE_NOT_FOUND = 0.15          # no profile matches any employer or school on the CV
@@ -435,7 +435,8 @@ class CVVerifier:
         """Search by name with progressively looser filters; open the most plausible hits."""
         industry = industry_of(cv["headline"])
         plans = [{"location": cv["city"], "industry": industry}, {"location": cv["city"]},
-                 {"industry": industry}, {"location": cv["country"]}, {}]
+                 {"location": cv["country"], "industry": industry}, {"industry": industry},
+                 {"location": cv["country"]}, {}]
         hits: dict[int, dict[str, Any]] = {}
         opened: dict[int, dict[str, Any]] = {}
         best: tuple[int, dict[str, Any], dict[str, int]] | None = None
@@ -458,7 +459,10 @@ class CVVerifier:
             trace["searches"].append({"args": args, "n": len(found)})
             for hit in found:
                 hits.setdefault(int(hit["id"]), hit)
-            for hit in sorted(hits.values(), key=rank)[:len(opened) + 3]:
+            # Open every same-name hit (best-ranked first); other names only a few at a time.
+            ranked = sorted(hits.values(), key=rank)
+            namesakes = [h for h in ranked if rank(h)[0] == 0]
+            for hit in namesakes or ranked[:len(opened) + 3]:
                 pid = int(hit["id"])
                 if pid in opened or len(opened) >= MAX_PROFILE_FETCHES:
                     continue

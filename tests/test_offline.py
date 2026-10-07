@@ -157,6 +157,13 @@ moved = dict(target, city="Singapore")
 trace = {"searches": [], "candidates": []}
 got = asyncio.run(verifier.find_profile(moved, trace))
 check("still finds them when the CV city is false (looser search)", got and got["id"] == 12, trace["searches"])
+for i in range(100, 115):                         # 15 namesakes in the same city, sorted before the real one
+    people[i] = profile(id=i, name="Alex Chan", city="Hong Kong", experience=[exp("Shopee", "Engineer", "mid", 2015)])
+people[999] = dict(people.pop(12), id=999)
+trace = {"searches": [], "candidates": []}
+got = asyncio.run(verifier.find_profile(target, trace))
+check("real person found behind 15+ namesakes with the same city", got and got["id"] == 999,
+      f"opened {len(trace['candidates'])}")
 nobody = cv(name="Zed Nobody", jobs=[job("AIA", "Manager", 2019)])
 trace = {"searches": [], "candidates": []}
 check("unknown name -> no profile", asyncio.run(verifier.find_profile(nobody, trace)) is None)
